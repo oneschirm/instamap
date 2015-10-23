@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>
+            Instamap - The Syrian Civil War and Instagram
+        </title>
+        <link rel='icon' href='/images/favicon.ico'>
+        <style type="text/css">
+html, body { 
+          height: 100%;
+          margin: 0; 
+          padding: 0; 
+          font-family:OpenLight,Verdana;
+        }
+        img {
+          max-height:400px;
+        }
+        #legend{
+          width:80%; 
+          margin-left:auto; 
+          margin-right:auto;
+        }
+        #legend-contents{
+          display: flex;
+          justify-content: space-between;        
+        }
+        #map { 
+          height: 50%; 
+          width:90%; 
+          margin-left:auto; 
+          margin-right:auto;
+          margin-top:1em;}
+        .title,.click {
+          margin-left:5%;
+          margin-top:0em;
+          margin-bottom:0em;
+        }
+        @font-face{
+        font-family:'OpenLight';
+        src:url('/extras/self-hosted/OpenSans-Regular-webfont.ttf');
+        }
+        .results-block {
+          margin-left:auto; 
+          margin-right:auto;
+          width:70%;
+          background-color:
+          #F7F7F7;
+          padding:.5em;
+          margin-top:.25em;
+          margin-bottom:.25em;
+        }
+          .comments{
+              font-size:80%;
+          }
+          hr {
+              width:70%;
+          }
+        </style>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js" type="text/javascript">
+</script>
+        <script async="" defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCB9tpnMjJwKdDvMPs7xg-p-unv34Nli3M&amp;libraries=visualization&amp;sensor=true_or_false&amp;callback=handleMap" type="text/javascript">
+</script>
+    </head>
+    <body>
+        <h1 class="title">
+            <b>InstaMap</b>
+        </h1>
+        <h3 class="title">
+            The Syrian Civil War and Instagram - <a href="//decaffeinated.io">decaffeinated.io</a>
+        </h3>
+        <p class="click">
+            Click anywhere on the map to begin.
+        </p>
+        <div id="map"></div>
+        <div id="legend">
+            <span id="legend-contents"><img src="https://mt.googleapis.com/vt/icon/name=icons/onion/1492-wht-polygon-blank.png&amp;filter=ff009D57&amp;scale=1"><span>Rebels</span> <img src="https://mt.googleapis.com/vt/icon/name=icons/onion/1492-wht-polygon-blank.png&amp;filter=ffDB4436&amp;scale=1"><span>SAA Troops and Loyalists</span> <img src="https://mt.googleapis.com/vt/icon/name=icons/onion/1492-wht-polygon-blank.png&amp;filter=ffCDDC39&amp;scale=1"><span>Kurds</span> <img src="https://mt.googleapis.com/vt/icon/name=icons/onion/1492-wht-polygon-blank.png&amp;filter=ffF8971B&amp;scale=1"><span>Shia-dominated</span> <img src="https://mt.googleapis.com/vt/icon/name=icons/onion/1492-wht-polygon-blank.png&amp;filter=ff000000&amp;scale=1"><span>ISIS</span> <img src="https://mt.googleapis.com/vt/icon/name=icons/onion/1492-wht-polygon-blank.png&amp;filter=ff7C3592&amp;scale=1"><span>Druze</span></span>
+        </div>
+        <hr>
+        <div id="results"></div><script type="text/javascript">
+        var map;
+        var old_marker;
+        var heatmap;
+
+        function handleMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+        });
+        //from https://snazzymaps.com/style/6618/cladme
+        var styles = [{"featureType":"administrative","elementType":"labels.text.fill","stylers":[{"color":"#444444"}]},{"featureType":"landscape","elementType":"all","stylers":[{"color":"#f2f2f2"}]},{"featureType":"poi","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"road","elementType":"all","stylers":[{"saturation":-100},{"lightness":45}]},{"featureType":"road.highway","elementType":"all","stylers":[{"visibility":"simplified"}]},{"featureType":"road.arterial","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"transit","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"water","elementType":"all","stylers":[{"color":"#4f595d"},{"visibility":"on"}]}];
+
+        map.setOptions({styles: styles});
+
+        var areas_of_control = new google.maps.KmlLayer({
+        url: 'https://mapsengine.google.com/map/kml?mid=ze1x2OUIbJgM.kynvHffQ2SWY&lid=ze1x2OUIbJgM.kB6wdrS3l6MA&forcekml=1',
+        clickable: false,
+            map: map,
+        preserveViewport:true,
+        zIndex:100
+        });
+
+        map.setZoom(6);
+        map.setCenter(new google.maps.LatLng(34.5,41.2));
+
+
+        google.maps.event.addListener(map, 'click', function( event ){
+        $("#results").empty();
+        if (old_marker != undefined){
+          if (heatmap != undefined){
+              heatmap.setMap(null);
+          }
+          old_marker.setMap(null);   
+        };
+
+        $(".click").remove();
+
+        var heatmapData = []
+
+        var latlng = {lat:event.latLng.lat(),lng:event.latLng.lng()};
+
+        var marker = new google.maps.Marker({
+          position: latlng,
+          map: map,
+          title: 'Selection'
+        });
+                        
+        var results_json = $.getJSON('/wide-path?lat='+latlng['lat']+'&lng='+latlng['lng']+'&distance=5000&count=100',function(json){
+
+            if(json.length > 0){
+                
+                $("<h3>").attr('class','results-block').text(json.length+" results").appendTo("#results");                
+                
+                for(i=0;i<json.length;i++){
+                                                            
+                    var photo_url = json[i]['photo_url'];
+                    var created_time = json[i]['created_time'];
+                    var username = json[i]['username'];
+                    var location_name = json[i]['location_name']
+                    var tags = json[i]['tags']
+                    var comments = json[i]['comments']
+                    var photo_latlng = json[i]['latlng']
+                    
+                    heatmapData.push(new google.maps.LatLng(photo_latlng['lat'],photo_latlng['lng']));
+                    
+                    $("<div>").attr('class','results-block result'+i).appendTo('#results');
+                    if(created_time > 1){
+                        $("<p>").attr('class','result created_time').text(created_time+" days ago, "+location_name).appendTo(".result"+i);
+                    }
+                    else{
+                        $("<p>").attr('class','result created_time').text("Less than one day ago, "+location_name).appendTo(".result"+i);
+                    }
+                    $("<img>").attr('class','result photo').attr('src',photo_url).appendTo(".result"+i);
+                    $("<br>").appendTo(".result"+i);
+                    if(tags.length>0){
+                        $("<p>").html("<b>Tags:<\/b> "+tags.join(', ')).appendTo('.result'+i);
+                    }
+                    $("<a>").attr('class','result user').attr('href','https://instagram.com/'+username).html("<b>User:<\/b> "+username).appendTo(".result"+i);
+                    
+                    $("<div>").attr('class','result comments comment-holder'+i).appendTo('.result'+i);
+                    for(j=0;j<=comments.length;j++){
+                        $("<p>").text(comments[j]).appendTo('.comment-holder'+i);
+                    }
+                }
+                heatmap = new google.maps.visualization.HeatmapLayer({
+                  data: heatmapData,
+                    dissipating:true
+                });
+                heatmap.setMap(map);
+            }
+            else{
+                $("<p>").attr('class','results-block').html('No results found.').appendTo('#results');
+            }
+            
+        })
+
+        old_marker = marker;
+        });
+        }
+        </script>
+    </body>
+</html>
